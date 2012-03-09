@@ -5,10 +5,10 @@ A simple ruby script to aid working with and creating tmux sessions.
 Tmux Session manager contains the following tasks:
 
     tsm help [TASK]  # Describe available tasks or one specific task
-	  tsm list         # Lists all available sessions configs
-	  tsm open         # Opens a session
-	  tsm view         # View a session config
-	
+    tsm list         # Lists all available sessions configs
+    tsm open         # Opens a session
+    tsm view         # View a session config
+  
 Each task is aliased by its first character e.g. `tsm o`, `tsm v`.
 
 ## Config Example
@@ -29,8 +29,8 @@ Every config option in this file is optional.
 The environment variables `SESSION_DIR` and `SESSION_URL` are available to you. One possible use is to create aliases that make use of these.
 
     alias osd="open $SESSION_DIR"
-	  alias osu="open $SESSION_URL"
-	  alias ose="mate $SESSION_DIR"
+    alias osu="open $SESSION_URL"
+    alias ose="mate $SESSION_DIR"
 
 ## Install
 Installation is currently a manual process.
