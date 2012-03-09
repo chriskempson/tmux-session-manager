@@ -1,0 +1,240 @@
+#!/usr/bin/env ruby
+# TSM - Tmux Session Manager
+
+require "thor"
+require "yaml"
+
+class TmuxProjectManager < Thor
+
+  default_task :list
+  
+  map "h" => :help
+  map "o" => :open
+  map "l" => :list
+  map "v" => :view
+  
+  desc "open", "Opens a session"
+  def open(session)
+    Tmux.new(session).open
+  end
+  
+  desc "list", "Lists all available sessions configs"
+  def list
+    tmux  = Tmux.new
+    files = tmux.read_config_dir
+    path  = tmux.config_path
+
+    files.each do |file|
+      if file != "." && file != ".."
+        session = file.gsub(".yml", "")
+        tmux = Tmux.new(session)
+        config = tmux.read_config_file
+        if tmux.check_session(session)
+          print "\e[32m+ \e[0m"
+        else
+          print "\e[31m- \e[0m"
+        end
+        print "#{session}"
+        if (config["description"])
+          print " : #{config["description"]}"
+        end
+        print "\n"
+      end
+    end
+  end
+  
+  desc "view", "View a session config"
+  def view(session)
+    Tmux.new(session).show_config_file
+  end
+
+end
+
+class Tmux
+  
+  attr_accessor :config_path
+  
+  def initialize(session = false)
+    @session = session
+    @config_path = File.expand_path('~') + "/.tsm"
+    @config_file = @config_path + "/#{session}.yml"
+  end
+  
+  def read_config_file
+    begin
+      YAML.load_file(@config_file)
+    rescue StandardError
+       abort("Error opening #{@config_file} please ensure you have created this file and that its readable.")
+    end
+  end
+  
+  def read_config_dir
+    begin
+      Dir.open(@config_path)
+    rescue StandardError
+       abort("Error opening #{@config_path} please ensure you have created this directory and that its readable.")
+    end
+  end
+  
+  def show_config_file()
+    begin
+      puts File.open(@config_file).read
+    rescue StandardError
+       abort("Error opening #{@config_file} please ensure you have created this file and that its readable.")
+    end
+  end
+  
+  def check_session(session)
+    sessions = Tmux.new.exec('ls', true)
+    if sessions 
+      sessions[/^#{session}:/]
+    end
+  end
+  
+  def open()
+    # If session is already running attach to it
+    if check_session(@session)
+      attach
+    else
+      parse_config_file
+    end
+  end
+  
+  def parse_config_file()
+    
+    # Get config YAML file
+    config = read_config_file
+    
+    # Create a new tmux session
+    new_session()
+    
+    # Set session env vars
+    if config["session_dir"] 
+      set_environment("SESSION_DIR", config["session_dir"])
+    end
+    if config["session_url"] 
+      set_environment("SESSION_URL", "http://#{config["session_url"]}")
+    end
+    
+    # Parse Tmux commands
+    if config["commands_before"]
+      parse_tmux_commands(config["commands_before"])
+    end
+    
+    # Change the default path for new windows
+    if config["session_dir"] 
+      set_option("default-path", "#{config["session_dir"]} > /dev/null")
+    end
+    
+    # Hack to refresh env vars for initial window
+    refresh_environment
+    
+    # Create, name and execute window commands
+    if config["windows"] 
+      parse_windows(config["windows"])
+    end
+    
+    # Select a window for focus
+    if config["select_window"]
+      select_window(config["select_window"])
+    else
+      select_window(1)
+    end
+    
+    # Set terminal title
+    if (config["description"])
+      set_option("set-titles-string", "'#{config["description"]}'")
+    end
+    
+    # Parse Tmux commands
+    if config["commands_after"]
+      parse_tmux_commands(config["commands_after"])
+    end
+    
+    # Attach tmux client to the new server session
+    attach
+  end
+  
+  def parse_windows(windows)
+    i = 0
+    windows.each do |name, commands|
+      i = i + 1
+      if i > 1 then new_window(i) end
+      rename_window(i, name)
+      parse_window_commands(i, commands)
+    end
+  end
+  
+  def parse_window_commands(index, commands)
+    if commands.kind_of?(Array)
+      commands.each do |command|
+        send_keys(index, command)
+      end
+    else
+      send_keys(index, commands)
+    end
+  end
+  
+  def parse_tmux_commands(commands)
+    if commands.kind_of?(Hash)
+      commands.each do |command, arguments|
+        if arguments.kind_of?(Array)
+          if command then exec("#{command} #{arguments.join(" ")}") end
+        else
+          if command then exec("#{command} #{arguments}") end
+        end
+      end
+    end
+  end
+  
+  def new_session
+    exec("new-session -d -s #{@session}")
+  end
+  
+  def set_environment(name, value)
+    exec("set-environment -t #{@session} #{name} #{value}")
+  end
+  
+  def refresh_environment
+    exec("new-window -t #{@session}:2")
+    exec("kill-window -t #{@session}:1")
+    exec("new-window -t #{@session}:1")
+    exec("kill-window -t #{@session}:2")
+  end
+  
+  def set_option(name, value)
+    exec("set-option -t #{@session} #{name} #{value}")
+  end
+  
+  def new_window(index)
+    exec("new-window -t #{@session}:#{index}")
+  end
+  
+  def rename_window(index, name)
+    exec("rename-window -t #{@session}:#{index} #{name}")
+  end
+  
+  def send_keys(index, command)
+    if command != "none" 
+      exec("send-keys -t #{@session}:#{index} '#{command}' C-m")
+    end
+  end
+  
+  def select_window(index)
+    exec("select-window -t #{@session}:#{index}")
+  end
+  
+  def attach
+    exec("attach -t #{@session}")
+  end
+  
+  def exec(command, suppress = false)
+    if suppress
+      %x{tmux #{command} > /dev/null 2>&1}
+    else
+      %x{tmux #{command}}
+    end
+  end
+end
+
+TmuxProjectManager.start
