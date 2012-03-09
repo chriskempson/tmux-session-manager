@@ -228,9 +228,9 @@ class Tmux
     exec("attach -t #{@session}")
   end
   
-  def exec(command, suppress = false)
-    if suppress
-      %x{tmux #{command} > /dev/null 2>&1}
+  def exec(command, catch_errors = false)
+    if catch_errors
+      %x{tmux #{command} 2>&1}
     else
       %x{tmux #{command}}
     end
