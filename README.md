@@ -39,6 +39,8 @@ Installation is currently a manual process.
     ln -s PATH_TO_TSM/tsm /usr/local/bin/tsm
 
 ## Todo
+* Add copy feature to clone existing configs
+* Add edit feature to launch the default editor for the specified config
 * Tidy the code
 * Write a better Readme
 * Package into a Gem?
