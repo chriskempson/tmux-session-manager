@@ -14,7 +14,7 @@ Each task is aliased by its first character e.g. `tsm o`, `tsm v`.
 ## Config Example
 Before using TMS you'll need to create a config file for your session you wish to setup
 
-The following file is `~/.tms/example.yml`
+The following file is `~/.tsm/example.yml`
 
     description: Example Session
     session_dir: ~/example
