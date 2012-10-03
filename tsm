@@ -4,21 +4,33 @@
 require "thor"
 require "yaml"
 
-class TmuxProjectManager < Thor
+class TmuxSessionManager < Thor
 
   default_task :list
   
   map "h" => :help
   map "o" => :open
+  map "c" => :create
+  map "k" => :kill
   map "l" => :list
   map "v" => :view
   
-  desc "open", "Opens a session"
+  desc "open", "Opens a session (alias o)"
   def open(session)
     Tmux.new(session).open
   end
+
+  desc "create", "Creates a session without need for a config file (alias c)"
+  def create(session)
+    Tmux.new(session).create
+  end
   
-  desc "list", "Lists all available sessions configs"
+  desc "kill", "Closes a session (alias k)"
+  def kill(session)
+    Tmux.new(session).kill
+  end
+  
+  desc "list", "Lists all available sessions configs (alias l)"
   def list
     tmux  = Tmux.new
     files = tmux.read_config_dir
@@ -43,7 +55,7 @@ class TmuxProjectManager < Thor
     end
   end
   
-  desc "view", "View a session config"
+  desc "view", "View a session config (alias v)"
   def view(session)
     Tmux.new(session).show_config_file
   end
@@ -67,7 +79,7 @@ class Tmux
        abort("Error opening #{@config_file} please ensure you have created this file and that its readable.")
     end
   end
-  
+
   def read_config_dir
     begin
       Dir.open(@config_path)
@@ -186,9 +198,32 @@ class Tmux
       end
     end
   end
+
+  def create()
+    # If session is already running attach to it
+    if check_session(@session)
+      attach
+    else
+      new_session()
+      attach
+    end
+  end
+  
+  def kill()
+    # If session is already running attach to it
+    if check_session(@session)
+      kill_session
+    else
+      abort("Session #{@session} is not open.")
+    end
+  end
   
   def new_session
     exec("new-session -d -s #{@session}")
+  end
+  
+  def kill_session
+    exec("kill-session -t #{@session}")
   end
   
   def set_environment(name, value)
@@ -237,4 +272,4 @@ class Tmux
   end
 end
 
-TmuxProjectManager.start
+TmuxSessionManager.start
