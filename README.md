@@ -14,7 +14,7 @@ Each task is aliased by its first character e.g. `tsm o`, `tsm v`.
 ## Config Example
 Before using TMS you'll need to create a config file for your session you wish to setup
 
-The following file is `~/.tms/example.yml`
+The following file is `~/.tsm/example.yml`
 
     description: Example Session
     session_dir: ~/example
@@ -39,6 +39,8 @@ Installation is currently a manual process.
     ln -s PATH_TO_TSM/tsm /usr/local/bin/tsm
 
 ## Todo
+* Add copy feature to clone existing configs
+* Add edit feature to launch the default editor for the specified config
 * Tidy the code
 * Write a better Readme
 * Package into a Gem?
