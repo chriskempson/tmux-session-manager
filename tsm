@@ -10,8 +10,7 @@ class TmuxSessionManager < Thor
   
   map "h" => :help
   map "o" => :open
-  map "c" => :create
-  map "k" => :kill
+  map "c" => :close
   map "l" => :list
   map "v" => :view
   
@@ -19,15 +18,10 @@ class TmuxSessionManager < Thor
   def open(session)
     Tmux.new(session).open
   end
-
-  desc "create", "Creates a session without need for a config file (alias c)"
-  def create(session)
-    Tmux.new(session).create
-  end
   
-  desc "kill", "Closes a session (alias k)"
-  def kill(session)
-    Tmux.new(session).kill
+  desc "close", "Closes a session (alias c)"
+  def close(session)
+    Tmux.new(session).close
   end
   
   desc "list", "Lists all available sessions configs (alias l)"
@@ -71,6 +65,10 @@ class Tmux
     @config_path = File.expand_path('~') + "/.tsm"
     @config_file = @config_path + "/#{session}.yml"
   end
+
+  def check_config_file
+    File.exists?(@config_file)
+  end
   
   def read_config_file
     begin
@@ -108,7 +106,16 @@ class Tmux
     if check_session(@session)
       attach
     else
-      parse_config_file
+      # Create a new tmux session
+      new_session()
+
+      # If we have a config file parse it
+      if check_config_file
+        parse_config_file
+      end
+
+      # Attach tmux client to the new server session
+      attach
     end
   end
   
@@ -116,9 +123,6 @@ class Tmux
     
     # Get config YAML file
     config = read_config_file
-    
-    # Create a new tmux session
-    new_session()
     
     # Set session env vars
     if config["session_dir"] 
@@ -162,9 +166,6 @@ class Tmux
     if config["commands_after"]
       parse_tmux_commands(config["commands_after"])
     end
-    
-    # Attach tmux client to the new server session
-    attach
   end
   
   def parse_windows(windows)
@@ -199,18 +200,7 @@ class Tmux
     end
   end
 
-  def create()
-    # If session is already running attach to it
-    if check_session(@session)
-      attach
-    else
-      new_session()
-      attach
-    end
-  end
-  
-  def kill()
-    # If session is already running attach to it
+  def close()
     if check_session(@session)
       kill_session
     else
