@@ -13,10 +13,16 @@ class TmuxSessionManager < Thor
   map "c" => :close
   map "l" => :list
   map "v" => :view
+  map "a" => :attach
   
   desc "open", "Opens a session (alias o)"
-  def open(session)
-    Tmux.new(session).open
+  def open(session=nil)
+    # If no session is specified try to attach
+    if session 
+      Tmux.new(session).open
+    else 
+      Tmux.new().attach
+    end
   end
   
   desc "close", "Closes a session (alias c)"
@@ -250,7 +256,11 @@ class Tmux
   end
   
   def attach
-    exec("attach -t #{@session}")
+    if @session
+      exec("attach -t #{@session}")
+    else
+      exec("attach")
+    end
   end
   
   def exec(command, catch_errors = false)
