@@ -35,8 +35,10 @@ The environment variables `SESSION_DIR` and `SESSION_URL` are available to you. 
 ## Install
 Installation is currently a manual process.
 
+    gem install thor
     mkdir ~/.tsm
-    ln -s PATH_TO_TSM/tsm /usr/local/bin/tsm
+    git clone https://github.com/chriskempson/tmux-session-manager.git /usr/local/share/tsm
+    ln -s /usr/local/share/tsm/tsm /usr/local/bin
 
 ## Todo
 * Add copy feature to clone existing configs
